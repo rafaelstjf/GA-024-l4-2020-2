@@ -18,39 +18,6 @@ struct graph
     Vertex *vertices;
     unsigned int num_vertices;
 };
-
-Graph *graph_createEmpty()
-{
-    Graph *g = (Graph *)malloc(sizeof(Graph));
-    g->vertices = NULL;
-    g->num_vertices = 0;
-    return g;
-}
-Graph *graph_create(int n)
-{
-    Graph *g = (Graph *)malloc(sizeof(Graph));
-    g->vertices = NULL;
-    g->num_vertices = n;
-    if (n >= 1)
-    {
-        g->vertices = (Vertex *)malloc(sizeof(Vertex));
-        g->vertices->edges = NULL;
-        g->vertices->id = 0;
-        g->vertices->next = NULL;
-        g->vertices->num_edges = 0;
-        Vertex *it = g->vertices;
-        for (int i = 1; i < n; i++)
-        {
-            it->next = (Vertex *)malloc(sizeof(Vertex));
-            it->next->edges = NULL;
-            it->next->id = i;
-            it->next->next = NULL;
-            it->next->num_edges = 0;
-            it = it->next;
-        }
-    }
-    return g;
-}
 static Vertex *create_vertex(int id, Vertex *next, Edge *edges, int num_edges)
 {
     Vertex *n = (Vertex *)malloc(sizeof(Vertex));
@@ -66,6 +33,30 @@ static Edge *create_edge(int id, Edge *next, int weight)
     e->id = id;
     e->next = next;
     e->weight = weight;
+}
+Graph *graph_createEmpty()
+{
+    Graph *g = (Graph *)malloc(sizeof(Graph));
+    g->vertices = NULL;
+    g->num_vertices = 0;
+    return g;
+}
+Graph *graph_create(int n)
+{
+    Graph *g = (Graph *)malloc(sizeof(Graph));
+    g->vertices = NULL;
+    g->num_vertices = n;
+    if (n >= 1)
+    {
+        g->vertices = create_vertex(0, NULL, NULL, 0);
+        Vertex *it = g->vertices;
+        for (int i = 1; i < n; i++)
+        {
+            it->next = create_vertex(i, NULL, NULL, 0);
+            it = it->next;
+        }
+    }
+    return g;
 }
 void graph_addVertex(Graph *g, int v)
 {
