@@ -13,10 +13,18 @@ int main(){
     graph_addEdge(g, 32, 2, 1);
     graph_addEdge(g, 0, 32, 1);
     graph_addEdge(g, 0, 15, 1);
-    graph_print(g);
+    graph_addEdge(g, 32, 0, 2);
+    /*graph_print(g);
     fprintf(stdout, "Removendo o vertice com id 32.\n");
     graph_removeVertex(g, 32);
     graph_print(g);
+    */
+   graph_print(g);
+   graph_dfs(g);
+   fprintf(stdout, "--------------------Com pilha---------------!\n");
+   graph_dfs_stack(g);
+   if(graph_checkCicle(g)) fprintf(stdout, "Possui ciclo!\n");
+   else  fprintf(stdout, "Nao possui ciclo!\n");
 
     return 0;
 }

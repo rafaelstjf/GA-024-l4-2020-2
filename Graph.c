@@ -1,5 +1,7 @@
 #include "Graph.h"
-
+#define WHITE 0
+#define GRAY 1
+#define BLACK 2
 typedef struct edge
 {
     int id;
@@ -12,6 +14,9 @@ typedef struct vertex
     struct vertex *next;
     Edge *edges;
     int num_edges;
+    int d; //discovery time
+    int t; //end time
+    int visited;
 } Vertex;
 struct graph
 {
@@ -25,6 +30,8 @@ static Vertex *create_vertex(int id, Vertex *next, Edge *edges, int num_edges)
     n->next = next;
     n->edges = edges;
     n->num_edges = num_edges;
+    n->d = 0;
+    n->t = 0;
     return n;
 }
 static Edge *create_edge(int id, Edge *next, int weight)
@@ -202,14 +209,17 @@ void graph_addEdge(Graph *g, int v1, int v2, int weight)
                         }
                     }
                     if (!ant)
+                    {
                         it->edges = create_edge(v2, NULL, weight);
+                        it->num_edges++;
+                    }
                     else
                     {
                         Edge *ed = create_edge(v2, ant->next, weight);
                         ant->next = ed;
+                        it->num_edges++;
                     }
                 }
-                it->num_edges++;
                 break;
             }
             it = it->next;
@@ -333,7 +343,7 @@ int graph_getAdjacentVertices(Graph *g, int v, int **a)
                 int ind = 0;
                 while (ed)
                 {
-                    a[ind] = (int *)ed->id;
+                    (*a)[ind] = (int *)ed->id;
                     ind++;
                     ed = ed->next;
                 }
@@ -342,6 +352,7 @@ int graph_getAdjacentVertices(Graph *g, int v, int **a)
             it = it->next;
         }
     }
+    (*a) = NULL;
     return 0;
 }
 void graph_print(Graph *g)
@@ -365,4 +376,232 @@ void graph_print(Graph *g)
             it = it->next;
         }
     }
+}
+static void set_dfsDiscoverytime(Graph *g, int id, int time)
+{
+    if (g)
+    {
+        int i = 0;
+        Vertex *it = g->vertices;
+        while (it->id != id)
+        {
+            it = it->next;
+        }
+        if (it)
+            it->d = time;
+    }
+}
+static int get_dfsDiscoverytime(Graph *g, int id)
+{
+    if (g)
+    {
+        int i = 0;
+        Vertex *it = g->vertices;
+        while (it->id != id)
+        {
+            it = it->next;
+        }
+        if (it)
+            return it->d;
+        else
+            return -1;
+    }
+}
+static void set_dfsEndtime(Graph *g, int id, int time)
+{
+    if (g)
+    {
+        int i = 0;
+        Vertex *it = g->vertices;
+        while (it->id != id)
+        {
+            it = it->next;
+        }
+        if (it)
+            it->t = time;
+    }
+}
+static int get_dfsEndtime(Graph *g, int id)
+{
+    if (g)
+    {
+        int i = 0;
+        Vertex *it = g->vertices;
+        while (it->id != id)
+        {
+            it = it->next;
+        }
+        if (it)
+            return it->t;
+        else
+            return -1;
+    }
+}
+static int get_id(Graph *g, int pos)
+{
+    if (!g)
+        return -1;
+    if (g->num_vertices < pos)
+        return -1;
+    Vertex *it = g->vertices;
+    int i = 0;
+    while (it && i < pos)
+    {
+        it = it->next;
+    }
+    if (it)
+        return it->id;
+}
+static int get_pos(Graph *g, int id)
+{
+    if (!g)
+        return -1;
+    Vertex *it = g->vertices;
+    int i = 0;
+    while (it && it->id != id)
+    {
+        it = it->next;
+        i++;
+    }
+    if (it)
+        return i;
+    return -1;
+}
+static int dfs_visit(Graph *g, int u, int total_t, int *color)
+{
+    color[u] = GRAY;
+    set_dfsDiscoverytime(g, get_id(g, u), ++total_t);
+    int *arr = NULL;
+    int n = graph_getAdjacentVertices(g, get_id(g, u), &arr);
+    if (arr)
+    {
+        for (int i = 0; i < n; i++)
+        {
+            int v = get_pos(g, arr[i]);
+            if (color[v] == WHITE)
+                total_t = dfs_visit(g, v, total_t, color);
+        }
+        free(arr);
+    }
+    printf("No visitado: %d\n", get_id(g, u));
+    color[u] = BLACK;
+    set_dfsEndtime(g, get_id(g, u), ++total_t);
+    return total_t;
+}
+void graph_dfs(Graph *g)
+{
+    int total_t = 0;
+    int num_vertices = graph_getVertexCount(g);
+    int *color = (int *)malloc(sizeof(int *) * num_vertices);
+    for (int i = 0; i < num_vertices; i++)
+        color[i] = WHITE;
+    for (int u = 0; u < num_vertices; u++)
+    {
+        if (color[u] == WHITE)
+            total_t = dfs_visit(g, u, total_t, color);
+    }
+    fprintf(stdout, "Total t: %d\n", total_t);
+    free(color);
+}
+static Vertex *get_vertex(Graph *g, int id)
+{
+    if (!g)
+        return NULL;
+    Vertex *it = g->vertices;
+    while (it && it->id != id)
+        it = it->next;
+    return it;
+}
+void graph_dfs_stack(Graph *g)
+{
+    if (!g)
+        return;
+    Vertex *it = g->vertices;
+    while (it)
+    {
+        it->visited = 0;
+        it = it->next;
+    }
+    it = g->vertices;
+    Stack *s = stack_create(g->num_vertices);
+    while (it)
+    {
+        if (!it->visited)
+        {
+            stack_push(s, it->id);
+            while (!stack_empty(s))
+            {
+                int *arr = NULL;
+                int id = 0;
+                if (!stack_pop(s, &id))
+                    return;
+                Vertex *temp = get_vertex(g, id);
+                temp->visited = 1;
+                int n = graph_getAdjacentVertices(g, id, &arr);
+
+                printf("No visitado: %d\n", id);
+                if (arr)
+                {
+                    for (int i = 0; i < n; i++)
+                    {
+                        temp = get_vertex(g, arr[i]);
+                        if (temp && !temp->visited)
+                            stack_push(s, arr[i]);
+                    }
+                    free(arr);
+                }
+            }
+        }
+        it = it->next;
+    }
+}
+int graph_checkCicle(Graph *g)
+{
+    if (!g)
+        return 0;
+    Vertex *it = g->vertices;
+    while (it)
+    {
+        it->visited = 0;
+        it = it->next;
+    }
+    it = g->vertices;
+    Stack *s = stack_create(g->num_vertices);
+    while (it)
+    {
+        if (!it->visited)
+        {
+            stack_push(s, it->id);
+            while (!stack_empty(s))
+            {
+                int *arr = NULL;
+                int id = 0;
+                if (!stack_pop(s, &id))
+                    return 0;
+                Vertex *temp = get_vertex(g, id);
+                temp->visited = 1;
+                int n = graph_getAdjacentVertices(g, id, &arr);
+                if (arr)
+                {
+                    for (int i = 0; i < n; i++)
+                    {
+                        temp = get_vertex(g, arr[i]);
+                        if (temp && !temp->visited)
+                            stack_push(s, arr[i]);
+                        else
+                            return 1;
+                    }
+                    free(arr);
+                }
+            }
+        }
+        it = it->next;
+        Vertex *it2 = g->vertices;
+        while (it2)
+        {
+            it2->visited = 0;
+            it2 = it2->next;
+        }
+    }
+    return 0;
 }
